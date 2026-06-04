@@ -102,7 +102,21 @@ services:
       - internal
       - external
 
-  # ── Dev client (static HTML served via nginx) ────────────────────────────────
+  # ── Next.js Web App ─────────────────────────────────────────────────────────
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+    depends_on:
+      - api
+    networks:
+      - internal
+      - external
+
+  # ── Dev client (nginx proxy + static HTML fallback) ─────────────────────────
   client:
     image: nginx:alpine
     restart: unless-stopped
@@ -113,6 +127,7 @@ services:
       - "${CLIENT_PORT:-3000}:80"
     depends_on:
       - api
+      - web
     networks:
       - internal
       - external
