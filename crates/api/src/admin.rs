@@ -8,6 +8,7 @@
 //!
 //! | Method | Path | Handler |
 //! |--------|------|---------|
+//! | `GET`  | `/admin/tenants` | [`list_tenants`] |
 //! | `POST` | `/admin/tenants` | [`create_tenant`] |
 //! | `DELETE` | `/admin/tenants/{tenant_id}` | [`deactivate_tenant`] |
 //! | `PUT` | `/admin/tenants/{tenant_id}/oidc` | [`update_oidc_issuer`] |
@@ -24,6 +25,7 @@ use uuid::Uuid;
 
 use auth::{JwksCache, TenantRegistry};
 use common::TenantId;
+use sqlx::PgPool;
 use tenant::{TenantRepositoryError, TenantUsage};
 
 // ── Shared app state ──────────────────────────────────────────────────────────
@@ -40,6 +42,8 @@ pub struct AdminState {
     pub registry: TenantRegistry,
     /// Per-tenant JWKS cache, invalidated on OIDC issuer updates.
     pub jwks_cache: JwksCache,
+    /// Raw connection pool used by handlers that issue custom SQL (e.g. list_tenants).
+    pub pool: PgPool,
 }
 
 impl std::fmt::Debug for AdminState {
@@ -74,6 +78,21 @@ pub struct CreateTenantResponse {
 pub struct UpdateIssuerRequest {
     /// The new OIDC `iss` claim URL to associate with this tenant.
     pub oidc_issuer: String,
+}
+
+/// A single item in the `GET /admin/tenants` response array.
+///
+/// Returned for each provisioned tenant: active or inactive.
+#[derive(Debug, Serialize)]
+pub struct TenantListItem {
+    /// The tenant's UUID.
+    pub tenant_id: Uuid,
+    /// Human-readable name of the tenant organisation.
+    pub name: String,
+    /// OIDC `iss` claim URL for this tenant's identity provider.
+    pub oidc_issuer: String,
+    /// Whether the tenant is currently active.
+    pub active: bool,
 }
 
 // ── Error type ────────────────────────────────────────────────────────────────
@@ -120,6 +139,44 @@ impl From<TenantRepositoryError> for AdminError {
             TenantRepositoryError::Database(e) => AdminError::Database(e.to_string()),
         }
     }
+}
+
+// ── GET /admin/tenants ────────────────────────────────────────────────────────
+
+/// List all provisioned tenants.
+///
+/// Returns every row in the `tenants` table (active and inactive) ordered by
+/// creation time.  The response shape matches [`TenantListItem`].
+///
+/// # Errors
+/// - HTTP 500 on unexpected database errors.
+///
+/// Requirements: 10.1
+pub async fn list_tenants(
+    State(state): State<AdminState>,
+) -> Result<Json<Vec<TenantListItem>>, AdminError> {
+    let rows = sqlx::query_as::<_, (uuid::Uuid, String, String, bool)>(
+        r#"
+        SELECT tenant_id, name, oidc_issuer, active
+        FROM   tenants
+        ORDER  BY created_at
+        "#,
+    )
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| AdminError::Database(e.to_string()))?;
+
+    let items = rows
+        .into_iter()
+        .map(|(tenant_id, name, oidc_issuer, active)| TenantListItem {
+            tenant_id,
+            name,
+            oidc_issuer,
+            active,
+        })
+        .collect();
+
+    Ok(Json(items))
 }
 
 // ── POST /admin/tenants ───────────────────────────────────────────────────────

@@ -30,6 +30,7 @@ mod conversations;
 mod error;
 mod groups;
 mod kds;
+mod registrations;
 
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -168,6 +169,7 @@ pub fn build_router(
     health_state: HealthState,
     ws_state: WsState,
     attachment_state: attachments::AttachmentState,
+    registration_state: registrations::RegistrationState,
 ) -> Router {
     // ── Shared auth handles (cloned for each sub-router) ───────────────────
     let tenant_registry = Arc::new(admin_state.registry.clone());
@@ -187,12 +189,32 @@ pub fn build_router(
 
     // ── Admin routes (/admin/...) protected by AdminAuthLayer ──────────────
     let admin_routes = Router::new()
-        .route("/admin/tenants", post(admin::create_tenant))
+        .route("/admin/tenants", get(admin::list_tenants).post(admin::create_tenant))
         .route("/admin/tenants/:tenant_id", delete(admin::deactivate_tenant))
         .route("/admin/tenants/:tenant_id/oidc", put(admin::update_oidc_issuer))
         .route("/admin/tenants/:tenant_id/usage", get(admin::get_tenant_usage))
         .with_state(admin_state)
         .layer(AdminAuthLayer::from_env());
+
+    // ── Registration admin routes — protected by AdminAuthLayer ───────────────
+    let registration_admin_routes = Router::new()
+        .route("/admin/registrations", get(registrations::list_registrations))
+        .route(
+            "/admin/registrations/:id/approve",
+            post(registrations::approve_registration),
+        )
+        .route(
+            "/admin/registrations/:id/reject",
+            post(registrations::reject_registration),
+        )
+        .with_state(registration_state.clone())
+        .layer(AdminAuthLayer::from_env());
+
+    // ── Public registration routes (no auth) ─────────────────────────────────
+    let registration_public_routes = Router::new()
+        .route("/registrations", post(registrations::submit_registration))
+        .route("/registrations/:id", get(registrations::get_registration))
+        .with_state(registration_state);
 
     // ── KDS routes — protected by AuthLayer ───────────────────────────────
     let kds_routes = Router::new()
@@ -288,6 +310,8 @@ pub fn build_router(
         .merge(platform_routes)
         .merge(auth_routes)
         .merge(admin_routes)
+        .merge(registration_admin_routes)
+        .merge(registration_public_routes)
         .merge(kds_routes)
         .merge(conversation_routes)
         .merge(group_routes)
@@ -349,9 +373,10 @@ async fn main() {
     let tenant_repo  = Arc::new(PgTenantRepository::new(pool.clone()));
     let token_store  = Arc::new(PgTokenStore::new(pool.clone()));
     let admin_state  = admin::AdminState {
-        repo:       tenant_repo,
+        repo:       tenant_repo.clone(),
         registry:   tenant_registry.clone(),
         jwks_cache: jwks_cache.clone(),
+        pool:       pool.clone(),
     };
     let refresh_state = Arc::new(RefreshState { token_store });
 
@@ -397,6 +422,12 @@ async fn main() {
         offline_enqueue: messaging_repo_ws         as Arc<dyn realtime::OfflineEnqueue>,
     };
 
+    // ── Registration state ────────────────────────────────────────────────────
+    let registration_state = registrations::RegistrationState {
+        pool: pool.clone(),
+        tenant_repo: tenant_repo as Arc<dyn ::tenant::TenantRepository>,
+    };
+
     // ── Build router ──────────────────────────────────────────────────────────
     let router = build_router(
         admin_state,
@@ -408,6 +439,7 @@ async fn main() {
         health_state,
         ws_state,
         attachment_state,
+        registration_state,
     );
 
     // ── Single HTTP/1.1 + WebSocket listener ─────────────────────────────────
@@ -444,10 +476,12 @@ mod tests {
     // ── Helper: build a router for compilation/shape tests ────────────────
 
     fn make_test_router() -> Router {
+        let fake_pool = sqlx::postgres::PgPool::connect_lazy("postgresql://localhost/test").unwrap();
         let admin_state = admin::AdminState {
             repo: Arc::new(MockTenantRepo),
             registry: TenantRegistry::new(),
             jwks_cache: JwksCache::new(),
+            pool: fake_pool.clone(),
         };
         let refresh_state = Arc::new(RefreshState {
             token_store: Arc::new(MockTokenStore),
@@ -466,6 +500,10 @@ mod tests {
             wt_manager: Arc::new(realtime::NoopWebTransportManager),
         };
         let metrics_registry = MetricsRegistry::new();
+        let registration_state = registrations::RegistrationState {
+            pool: fake_pool,
+            tenant_repo: Arc::new(MockTenantRepo),
+        };
 
         // HealthState requires a real PgPool and redis::Client — we cannot
         // construct those without a database in unit tests.  We use a separate
@@ -477,6 +515,7 @@ mod tests {
             conversation_state,
             group_state,
             metrics_registry,
+            registration_state,
         )
     }
 
@@ -488,6 +527,7 @@ mod tests {
         conversation_state: conversations::ConversationState,
         group_state: groups::GroupState,
         metrics_registry: MetricsRegistry,
+        registration_state: registrations::RegistrationState,
     ) -> Router {
         let tenant_registry = Arc::new(admin_state.registry.clone());
         let jwks_cache = Arc::new(admin_state.jwks_cache.clone());
@@ -520,12 +560,30 @@ mod tests {
             .with_state(refresh_state);
 
         let admin_routes = Router::new()
-            .route("/admin/tenants", post(admin::create_tenant))
+            .route("/admin/tenants", get(admin::list_tenants).post(admin::create_tenant))
             .route("/admin/tenants/:tenant_id", delete(admin::deactivate_tenant))
             .route("/admin/tenants/:tenant_id/oidc", put(admin::update_oidc_issuer))
             .route("/admin/tenants/:tenant_id/usage", get(admin::get_tenant_usage))
             .with_state(admin_state)
             .layer(AdminAuthLayer::from_env());
+
+        let registration_admin_routes = Router::new()
+            .route("/admin/registrations", get(registrations::list_registrations))
+            .route(
+                "/admin/registrations/:id/approve",
+                post(registrations::approve_registration),
+            )
+            .route(
+                "/admin/registrations/:id/reject",
+                post(registrations::reject_registration),
+            )
+            .with_state(registration_state.clone())
+            .layer(AdminAuthLayer::from_env());
+
+        let registration_public_routes = Router::new()
+            .route("/registrations", post(registrations::submit_registration))
+            .route("/registrations/:id", get(registrations::get_registration))
+            .with_state(registration_state);
 
         let kds_routes = Router::new()
             .route("/users/:user_id/devices", post(kds::register_device))
@@ -607,6 +665,8 @@ mod tests {
             .merge(platform_routes)
             .merge(auth_routes)
             .merge(admin_routes)
+            .merge(registration_admin_routes)
+            .merge(registration_public_routes)
             .merge(kds_routes)
             .merge(conversation_routes)
             .merge(group_routes)
@@ -619,8 +679,8 @@ mod tests {
     // ── Tests ─────────────────────────────────────────────────────────────
 
     /// Verify the full router compiles and can be constructed without panicking.
-    #[test]
-    fn full_router_compiles() {
+    #[tokio::test]
+    async fn full_router_compiles() {
         let _router = make_test_router();
     }
 

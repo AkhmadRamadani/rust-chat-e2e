@@ -297,6 +297,18 @@ pub mod error_codes {
     pub const UNKNOWN_TENANT: &str = "unknown_tenant";
     /// The requested tenant exists but has been deactivated.
     pub const TENANT_INACTIVE: &str = "tenant_inactive";
+    /// The `oidc_issuer` field does not begin with `https://`.
+    pub const INVALID_OIDC_ISSUER: &str = "invalid_oidc_issuer";
+    /// The `contact_email` field is not a valid email address.
+    pub const INVALID_EMAIL: &str = "invalid_email";
+    /// The `app_name` field is empty or exceeds 100 characters.
+    pub const INVALID_APP_NAME: &str = "invalid_app_name";
+    /// The `oidc_issuer` is already registered to an active tenant or pending registration.
+    pub const ISSUER_ALREADY_REGISTERED: &str = "issuer_already_registered";
+    /// The supplied registration token does not match the registration ID.
+    pub const INVALID_REGISTRATION_TOKEN: &str = "invalid_registration_token";
+    /// The registration is not in `pending` status so approve/reject is not allowed.
+    pub const REGISTRATION_NOT_PENDING: &str = "registration_not_pending";
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -546,6 +558,12 @@ mod tests {
             error_codes::INVALID_KEY_BUNDLE,
             error_codes::STORAGE_UNAVAILABLE,
             error_codes::INTERNAL_ERROR,
+            error_codes::INVALID_OIDC_ISSUER,
+            error_codes::INVALID_EMAIL,
+            error_codes::INVALID_APP_NAME,
+            error_codes::ISSUER_ALREADY_REGISTERED,
+            error_codes::INVALID_REGISTRATION_TOKEN,
+            error_codes::REGISTRATION_NOT_PENDING,
         ];
         for code in codes {
             assert!(!code.is_empty(), "error_code must not be empty: {code}");

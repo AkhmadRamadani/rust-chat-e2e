@@ -30,6 +30,9 @@ thiserror     = { workspace = true }
 async-trait   = { workspace = true }
 sqlx          = { workspace = true }
 redis         = { workspace = true }
+chrono        = { workspace = true }
+hex           = "0.4"
+rand          = "0.8"
 
 [dev-dependencies]
 proptest          = { workspace = true }

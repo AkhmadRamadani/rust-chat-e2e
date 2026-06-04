@@ -8,24 +8,24 @@ Build a Next.js 14 web application (App Router, TypeScript, Tailwind CSS) coveri
 
 ## Tasks
 
-- [ ] 1. Database migration — `tenant_registrations` table
+- [x] 1. Database migration — `tenant_registrations` table
   - Create `migrations/20240601000000_create_tenant_registrations.sql`
   - Columns: `registration_id UUID PK`, `app_name TEXT NOT NULL`, `oidc_issuer TEXT NOT NULL`, `contact_email TEXT NOT NULL`, `status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected'))`, `registration_token TEXT NOT NULL UNIQUE`, `tenant_id UUID REFERENCES tenants(tenant_id)`, `rejection_reason TEXT`, `created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`, `updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
   - Add indexes: `idx_registrations_status ON tenant_registrations(status)`, `idx_registrations_issuer ON tenant_registrations(oidc_issuer)`
   - _Requirements: 10.9_
 
-- [ ] 2. Add new error codes to `crates/common/src/lib.rs`
+- [x] 2. Add new error codes to `crates/common/src/lib.rs`
   - Add to `pub mod error_codes`: `INVALID_OIDC_ISSUER`, `INVALID_EMAIL`, `INVALID_APP_NAME`, `ISSUER_ALREADY_REGISTERED`, `INVALID_REGISTRATION_TOKEN`, `REGISTRATION_NOT_PENDING`
   - _Requirements: 3.5, 8.3, 8.4, 8.5, 8.6, 9.2, 10.5, 10.8_
 
-- [ ] 3. Implement `GET /admin/tenants` — list all tenants
+- [x] 3. Implement `GET /admin/tenants` — list all tenants
   - Add `list_tenants` handler to `crates/api/src/admin.rs`
   - SQL: `SELECT tenant_id, name, oidc_issuer, active FROM tenants ORDER BY created_at`
   - Return `Json<Vec<TenantListItem>>` where `TenantListItem { tenant_id, name, oidc_issuer, active }`
   - Add `.get(admin::list_tenants)` to the existing `"/admin/tenants"` route in `build_router`
   - _Requirements: 10.1_
 
-- [ ] 4. Implement registration API handlers (`crates/api/src/registrations.rs`)
+- [x] 4. Implement registration API handlers (`crates/api/src/registrations.rs`)
   - Create `RegistrationState { pool: PgPool, tenant_repo: Arc<dyn TenantRepository> }`
   - `submit_registration` (`POST /registrations`, no auth):
     - Validate `app_name` (1–100 chars), `oidc_issuer` (starts with `https://`), `contact_email` (contains `@`)
@@ -52,7 +52,7 @@ Build a Next.js 14 web application (App Router, TypeScript, Tailwind CSS) coveri
   - Add `hex = "0.4"` to `crates/api/Cargo.toml` if not present
   - _Requirements: 8.1–8.7, 9.1–9.5, 10.2–10.9_
 
-- [ ] 5. Wire registration routes into `build_router` and `main.rs`
+- [x] 5. Wire registration routes into `build_router` and `main.rs`
   - In `main()`: construct `RegistrationState { pool: pool.clone(), tenant_repo: tenant_repo.clone() }`
   - In `build_router`: add parameter `registration_state: registrations::RegistrationState`
   - Add public routes (no auth): `POST /registrations`, `GET /registrations/:id`
