@@ -5,6 +5,8 @@ A multi-tenant real-time chat API built in Rust. Supports 1:1 and group conversa
 ## Features
 
 - **Multi-tenant** — multiple independent apps share one deployment with full data isolation
+- **Tenant Admin Portal** — Next.js web UI for admins to manage tenants and view usage metrics
+- **Self-Registration Portal** — public UI for clients to apply for tenant access
 - **Real-time** — WebSocket delivery with offline queue fallback
 - **File attachments** — upload images, videos, documents, or any file type
 - **OIDC authentication** — bring your own identity provider (Auth0, Keycloak, Okta, Cognito, etc.)
@@ -78,6 +80,7 @@ rust-chat-postgres-1      healthy
 rust-chat-redis-1         healthy
 rust-chat-migrate-1       exited (0)   ← migrations ran successfully
 rust-chat-api-1           running
+rust-chat-web-1           running
 rust-chat-client-1        running
 ```
 
@@ -94,18 +97,17 @@ curl http://localhost:3000/health
 
 ### Step 5a — Dev mode: register the mock tenant
 
-```sh
-curl -X POST http://localhost:3000/admin/tenants \
-  -H "Authorization: Bearer your-admin-token" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Dev Tenant","oidc_issuer":"http://oidc/default"}'
-```
-
-Expected response:
-
-```json
-{"tenant_id":"3db467cf-..."}
-```
+1. Open **http://localhost:3000/admin**
+2. Sign in with the `$ADMIN_TOKEN` you set in `.env`
+3. Click **Create Tenant**
+4. Set Name to `Dev Tenant` and OIDC Issuer to `http://oidc/default`
+5. Alternatively, register via the API:
+   ```sh
+   curl -X POST http://localhost:3000/api/admin/tenants \
+     -H "Authorization: Bearer your-admin-token" \
+     -H "Content-Type: application/json" \
+     -d '{"name":"Dev Tenant","oidc_issuer":"http://oidc/default"}'
+   ```
 
 ### Step 5b — Production: register your real OIDC tenant
 
@@ -120,12 +122,16 @@ Replace the `oidc_issuer` with your provider's issuer URL:
 | Firebase | `https://securetoken.google.com/{project-id}` |
 | Supabase | `https://{project-ref}.supabase.co/auth/v1` |
 
+Use the Admin Portal (**http://localhost:3000/admin**) or the API to register your identity provider:
+
 ```sh
-curl -X POST http://localhost:8080/admin/tenants \
+curl -X POST http://localhost:3000/api/admin/tenants \
   -H "Authorization: Bearer your-admin-token" \
   -H "Content-Type: application/json" \
   -d '{"name":"My App","oidc_issuer":"https://your-idp.example.com"}'
 ```
+
+Users can also self-register at **http://localhost:3000/register**, which you can then approve in the Admin Dashboard.
 
 The API validates tokens against `{oidc_issuer}/.well-known/jwks.json`.
 
@@ -166,7 +172,15 @@ In any open conversation, click the **📎** button to attach a file. Supports i
 
 ## API Overview
 
-All endpoints are served at `http://localhost:8080` (or via the nginx proxy at `http://localhost:3000`).
+All API endpoints are proxied through nginx at `http://localhost:3000/api/`.
+
+### Web UIs
+
+| Path | Description |
+|------|-------------|
+| `/` | Legacy chat client |
+| `/admin` | Tenant Admin Dashboard (requires `ADMIN_TOKEN`) |
+| `/register` | Self-Registration Portal (public) |
 
 ### Admin (requires `Authorization: Bearer {ADMIN_TOKEN}`)
 
@@ -216,9 +230,9 @@ Browser / Client
     │  HTTP/1.1 + WebSocket
     ▼
 nginx (port 3000)
-    ├── /ws, /health, /metrics, /admin/, /users/, ...  → api:8080
-    ├── /oidc/  → oidc:80  (dev only)
-    └── /       → static HTML client
+    ├── /api/*, /ws, ... → api:8080 (Rust backend)
+    ├── /oidc/           → oidc:80  (dev only mock)
+    └── /*               → web:3000 (Next.js App)
     
 api (port 8080)  ←→  PostgreSQL  ←→  Redis
 ```

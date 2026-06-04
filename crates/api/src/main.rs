@@ -107,6 +107,8 @@ struct WsQuery {
     /// Bearer token passed as a query param since browser `WebSocket` API
     /// does not support custom headers.
     token: String,
+    /// Device ID of the connecting client.
+    device_id: Option<Uuid>,
 }
 
 /// `GET /ws?token=<jwt>` — upgrade to a WebSocket real-time session.
@@ -129,9 +131,10 @@ async fn ws_handler(
 
     let device_id = match user.device_id {
         Some(d) => d,
-        // Use a nil UUID when no device_id is in the token; the client should
-        // pass a device_id query param in a real implementation.
-        None => common::DeviceId(Uuid::nil()),
+        None => match params.device_id {
+            Some(d) => common::DeviceId(d),
+            None => common::DeviceId(Uuid::nil()),
+        },
     };
 
     let manager = Arc::clone(&state.manager);

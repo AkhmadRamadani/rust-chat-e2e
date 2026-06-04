@@ -44,7 +44,7 @@ export default function RegisterPage() {
   const validateForm = () => {
     const errors: Record<string, string> = {};
     if (!appName.trim() || appName.length > 100) errors.appName = 'Must be between 1 and 100 characters';
-    if (!oidcIssuer.startsWith('https://')) errors.oidcIssuer = 'Must start with https://';
+    if (!oidcIssuer.startsWith('https://') && !oidcIssuer.startsWith('http://')) errors.oidcIssuer = 'Must start with http:// or https://';
     if (!/^[^@]+@[^@]+\.[^@]+$/.test(contactEmail)) errors.contactEmail = 'Must be a valid email address';
     setFormErrors(errors);
     return Object.keys(errors).length === 0;

@@ -28,6 +28,7 @@ WORKDIR /app
 COPY --from=builder /app/target/release/api /app/api
 COPY --from=builder /app/migrations         /app/migrations
 
+RUN mkdir -p /app/attachments
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 

@@ -14,7 +14,7 @@ export function CreateTenantForm({ token, onSuccess }: { token: string; onSucces
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return showToast('Name is required', 'error');
-    if (!issuer.startsWith('https://')) return showToast('Issuer must start with https://', 'error');
+    if (!issuer.startsWith('https://') && !issuer.startsWith('http://')) return showToast('Issuer must start with http:// or https://', 'error');
 
     setLoading(true);
     try {

@@ -21,11 +21,13 @@ docker compose up -d   # NO dev overlay
 Then register your real OIDC tenant:
 
 ```sh
-curl -X POST http://localhost:8080/admin/tenants \
+curl -X POST http://localhost:3000/api/admin/tenants \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"name":"My App","oidc_issuer":"https://your-idp.example.com"}'
 ```
+
+Alternatively, you can visit **http://localhost:3000/admin** to configure tenants using the Admin Dashboard UI.
 
 Supported providers: Auth0, Keycloak, Okta, Cognito, Firebase, Supabase, or any standard OIDC provider. The API fetches JWKS from `{oidc_issuer}/.well-known/jwks.json`.
 
@@ -35,9 +37,10 @@ Supported providers: Auth0, Keycloak, Okta, Cognito, Firebase, Supabase, or any 
 
 | File | Purpose |
 |---|---|
-| `docker-compose.yml` | **Production** — postgres, redis, api, client |
+| `docker-compose.yml` | **Production** — postgres, redis, api, web (Next.js), client (nginx) |
 | `docker-compose.dev.yml` | **Dev overlay** — adds mock OIDC (mock-oauth2-server + nginx proxy) |
-| `client/nginx.conf` | Production nginx — no `/oidc` proxy route |
+| `web/Dockerfile` | Multi-stage builder for the Next.js web application |
+| `client/nginx.conf` | Production nginx — proxies `/api` to rust backend, rest to Next.js |
 | `client/nginx.dev.conf` | Dev nginx — adds `/oidc` proxy route for mock token issuance |
 | `.env.example` | Template for environment variables |
 
@@ -141,12 +144,14 @@ Check the health endpoint (if your server entry point wires up the HTTP listener
 
 ```sh
 curl http://localhost:8080/health
+# Or via proxy: curl http://localhost:3000/api/health
 ```
 
 Check Prometheus metrics:
 
 ```sh
 curl http://localhost:8080/metrics
+# Or via proxy: curl http://localhost:3000/api/metrics
 ```
 
 ---
@@ -182,8 +187,9 @@ docker compose down -v
 ┌─────────────────────────────────────────────────┐
 │  Host / Reverse Proxy                           │
 │                                                 │
-│  UDP :4433  ──────►  api (QUIC / HTTP-3)        │
-│  TCP :8080  ──────►  api (health / metrics)     │
+│  TCP :3000  ──────►  nginx                      │
+│                        ├── /api/* ─► api:8080   │
+│                        └── /*     ─► web:3000   │
 └─────────────────────────────────────────────────┘
                           │
               ┌───────────┴──────────┐

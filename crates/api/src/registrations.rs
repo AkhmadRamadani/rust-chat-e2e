@@ -228,10 +228,10 @@ fn validate_registration_fields(
             message: "app_name must be between 1 and 100 characters".to_string(),
         });
     }
-    if !oidc_issuer.starts_with("https://") {
+    if !oidc_issuer.starts_with("https://") && !oidc_issuer.starts_with("http://") {
         return Err(RegistrationError::Validation {
             code: error_codes::INVALID_OIDC_ISSUER,
-            message: "oidc_issuer must begin with https://".to_string(),
+            message: "oidc_issuer must begin with http:// or https://".to_string(),
         });
     }
     let at_idx = contact_email.find('@').ok_or_else(|| RegistrationError::Validation {
