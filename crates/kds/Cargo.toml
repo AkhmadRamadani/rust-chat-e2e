@@ -1,0 +1,25 @@
+[package]
+name = "kds"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+common         = { path = "../common" }
+tokio          = { workspace = true }
+serde          = { workspace = true }
+serde_json     = { workspace = true }
+uuid           = { workspace = true }
+sqlx           = { workspace = true }
+bytes          = { workspace = true }
+curve25519-dalek = { workspace = true }
+ed25519-dalek  = { workspace = true }
+tracing        = { workspace = true }
+thiserror      = { workspace = true }
+async-trait    = { workspace = true }
+
+[dev-dependencies]
+proptest        = { workspace = true }
+testcontainers  = { workspace = true }
+testcontainers-modules = { workspace = true }
+tokio           = { workspace = true }
+rand            = "0.8"

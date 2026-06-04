@@ -1,0 +1,15 @@
+[package]
+name = "tenant"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+common      = { path = "../common" }
+tokio       = { workspace = true }
+sqlx        = { workspace = true }
+uuid        = { workspace = true }
+async-trait = { workspace = true }
+thiserror   = { workspace = true }
+serde       = { workspace = true }
+serde_json  = { workspace = true }
+tracing     = { workspace = true }

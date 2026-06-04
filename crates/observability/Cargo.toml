@@ -1,0 +1,20 @@
+[package]
+name = "observability"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+common            = { path = "../common" }
+auth              = { path = "../auth" }
+tokio             = { workspace = true }
+serde             = { workspace = true }
+serde_json        = { workspace = true }
+uuid              = { workspace = true }
+prometheus-client = { workspace = true }
+tracing           = { workspace = true }
+tracing-subscriber = { workspace = true }
+thiserror         = { workspace = true }
+axum              = { workspace = true }
+tower             = { workspace = true }
+sqlx              = { workspace = true }
+redis             = { workspace = true }

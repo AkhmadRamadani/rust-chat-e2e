@@ -1,0 +1,17 @@
+[package]
+name = "realtime"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+common        = { path = "../common" }
+axum          = { workspace = true, features = ["ws"] }
+tokio         = { workspace = true }
+serde         = { workspace = true }
+serde_json    = { workspace = true }
+uuid          = { workspace = true }
+bytes         = { workspace = true }
+tracing       = { workspace = true }
+thiserror     = { workspace = true }
+async-trait   = { workspace = true }
+futures-util  = "0.3"

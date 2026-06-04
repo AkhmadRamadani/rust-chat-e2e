@@ -1,0 +1,1769 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>rust-e2e-chat — Dev Client</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #22263a;
+            --border: #2e3250;
+            --accent: #5c6ef8;
+            --accent-dim: #3d4ab0;
+            --text: #e2e4f0;
+            --text-dim: #7b82a8;
+            --success: #3ecf8e;
+            --danger: #f87171;
+            --warning: #fbbf24;
+            --radius: 8px;
+            --font: 'Inter', system-ui, sans-serif;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--text);
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* header */
+        header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 20px;
+            height: 52px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        header h1 {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .tag {
+            font-size: 10px;
+            background: var(--accent-dim);
+            color: #a5aff9;
+            padding: 2px 7px;
+            border-radius: 99px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .spacer {
+            flex: 1;
+        }
+
+        #status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-dim);
+        }
+
+        #status-dot.ok {
+            background: var(--success);
+        }
+
+        #status-dot.err {
+            background: var(--danger);
+        }
+
+        #status-label {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        /* nav tabs */
+        .nav-tabs {
+            display: flex;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            padding: 0 20px;
+            gap: 4px;
+        }
+
+        .nav-tab {
+            padding: 10px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: var(--text-dim);
+            transition: color .15s, border-color .15s;
+        }
+
+        .nav-tab:hover {
+            color: var(--text);
+        }
+
+        .nav-tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        /* tab panels */
+        .tab-panel {
+            display: none;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .tab-panel.active {
+            display: flex;
+        }
+
+        /* ── shared layout ── */
+        .layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 300px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            overflow-y: auto;
+        }
+
+        .section {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+        }
+
+        .form-row {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        label {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        input,
+        select,
+        textarea {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-size: 13px;
+            padding: 7px 10px;
+            outline: none;
+            width: 100%;
+            transition: border-color .15s;
+            font-family: inherit;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--accent);
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: var(--text-dim);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 56px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 8px 14px;
+            cursor: pointer;
+            transition: background .15s, opacity .15s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            background: var(--accent-dim);
+        }
+
+        .btn:active {
+            opacity: .8;
+        }
+
+        .btn.ghost {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+        }
+
+        .btn.ghost:hover {
+            border-color: var(--accent);
+            color: var(--text);
+        }
+
+        .btn.sm {
+            padding: 5px 10px;
+            font-size: 11px;
+            width: auto;
+        }
+
+        .btn.danger-outline {
+            background: transparent;
+            border: 1px solid #7f1d1d;
+            color: var(--danger);
+        }
+
+        .btn.danger-outline:hover {
+            background: #7f1d1d22;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-row .btn {
+            flex: 1;
+        }
+
+        /* user list */
+        .user-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 0 16px 16px;
+        }
+
+        .user-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 12px;
+        }
+
+        .user-card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 4px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 600;
+            flex: 1;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-device {
+            font-size: 11px;
+            color: var(--text-dim);
+            font-family: monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .use-btn {
+            font-size: 10px;
+            padding: 3px 8px;
+            width: auto;
+        }
+
+        /* tenant list */
+        .tenant-card {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 12px;
+            margin-bottom: 6px;
+        }
+
+        .tenant-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .tenant-meta {
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 2px;
+            font-family: monospace;
+            word-break: break-all;
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 10px;
+            padding: 1px 7px;
+            border-radius: 99px;
+            font-weight: 600;
+        }
+
+        .badge.active {
+            background: #0d2b1e;
+            color: var(--success);
+        }
+
+        .badge.inactive {
+            background: #2b0d0d;
+            color: var(--danger);
+        }
+
+        /* ── Chat tab sidebar ── */
+        .conv-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+
+        .conv-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 10px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            border: 1px solid transparent;
+            margin-bottom: 2px;
+            transition: background .1s;
+        }
+
+        .conv-item:hover {
+            background: var(--surface2);
+        }
+
+        .conv-item.active {
+            background: var(--surface2);
+            border-color: var(--accent);
+        }
+
+        .conv-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: var(--accent-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .conv-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .conv-name {
+            font-size: 13px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .conv-last {
+            font-size: 11px;
+            color: var(--text-dim);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* ── Chat pane ── */
+        .chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            padding: 0 20px;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .chat-header .big-name {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .chat-header .sub-id {
+            font-size: 11px;
+            color: var(--text-dim);
+            font-family: monospace;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .msg {
+            display: flex;
+            flex-direction: column;
+            max-width: 68%;
+        }
+
+        .msg.mine {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .msg.theirs {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .msg-meta {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-bottom: 3px;
+        }
+
+        .msg-bubble {
+            padding: 9px 14px;
+            border-radius: 14px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .msg.mine .msg-bubble {
+            background: var(--accent);
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg.theirs .msg-bubble {
+            background: var(--surface2);
+            color: var(--text);
+            border-bottom-left-radius: 4px;
+        }
+
+        .msg-seq {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-top: 2px;
+        }
+
+        .msg.mine .msg-seq {
+            text-align: right;
+        }
+
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--text-dim);
+            font-size: 14px;
+        }
+
+        .empty-state .icon {
+            font-size: 40px;
+        }
+
+        .compose {
+            padding: 14px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .compose input {
+            flex: 1;
+            font-size: 14px;
+            padding: 10px 14px;
+        }
+
+        .compose .btn {
+            width: auto;
+            padding: 10px 18px;
+        }
+
+        /* ── Admin pane ── */
+        .admin-pane {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .admin-section {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .admin-section h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .admin-section p {
+            font-size: 13px;
+            color: var(--text-dim);
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .admin-grid .form-row {
+            margin-bottom: 0;
+        }
+
+        .admin-grid .full {
+            grid-column: 1 / -1;
+        }
+
+        /* ── Dev log panel ── */
+        .devpanel {
+            width: 280px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            background: var(--surface);
+            border-left: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .devpanel-header {
+            padding: 12px 16px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .log {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 12px;
+            font-size: 11px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .log-entry {
+            padding: 4px 8px;
+            border-radius: 4px;
+            line-height: 1.4;
+            word-break: break-all;
+        }
+
+        .log-entry.info {
+            color: #a5aff9;
+            background: #1e2038;
+        }
+
+        .log-entry.ok {
+            color: var(--success);
+            background: #0d2b1e;
+        }
+
+        .log-entry.err {
+            color: var(--danger);
+            background: #2b0d0d;
+        }
+
+        .log-entry.warn {
+            color: var(--warning);
+            background: #2b1f0d;
+        }
+
+        .log-entry .ts {
+            color: var(--text-dim);
+            margin-right: 6px;
+        }
+
+        .log-actions {
+            padding: 8px 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        /* toast */
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 13px;
+            z-index: 200;
+            opacity: 0;
+            transition: opacity .2s;
+            pointer-events: none;
+        }
+
+        #toast.show {
+            opacity: 1;
+        }
+
+        #toast.ok-toast {
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        #toast.err-toast {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 99px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+  <h1>rust-e2e-chat</h1><span class="tag">dev client</span>
+  <span class="spacer"></span>
+  <div id="status-dot"></div>
+  <span id="status-label">checking…</span>
+</header>
+
+<!-- Tab nav -->
+<nav class="nav-tabs">
+  <div class="nav-tab active" onclick="switchTab('chat')">💬 Chat</div>
+  <div class="nav-tab" onclick="switchTab('users')">👤 Users</div>
+  <div class="nav-tab" onclick="switchTab('admin')">🔑 Admin</div>
+</nav>
+
+<!-- ═══════════════════════════ TAB: CHAT ═══════════════════════════ -->
+<div class="tab-panel active" id="tab-chat">
+  <div class="layout">
+    <aside class="sidebar">
+      <!-- Connection settings -->
+      <div class="section">
+        <div class="section-title">Connection</div>
+        <div class="form-row">
+          <label>Admin HTTP Base URL (leave empty = same origin)</label>
+          <input id="adminUrl" value="" placeholder="empty = http://localhost:3000" />
+        </div>
+        <button class="btn ghost sm" style="width:100%;margin-top:4px;" onclick="checkHealth()">↻ Check Health</button>
+      </div>
+      <!-- My identity -->
+      <div class="section">
+        <div class="section-title">My Identity</div>
+        <div class="form-row">
+          <label>Bearer Token (JWT)</label>
+          <input id="token" placeholder="eyJ…" />
+        </div>
+        <div class="form-row">
+          <label>My User ID</label>
+          <input id="myUserId" placeholder="user-alice" />
+        </div>
+        <div class="form-row">
+          <label>My Device ID (UUID)</label>
+          <input id="myDeviceId" placeholder="auto-filled after register" />
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="registerDevice()">Register Device</button>
+          <button class="btn ghost" onclick="connectWs()">Connect WS</button>
+        </div>
+      </div>
+      <!-- New conversation -->
+      <div class="section">
+        <div class="section-title">New Conversation</div>
+        <div class="form-row">
+          <label>Recipient User ID</label>
+          <input id="recipientUserId" placeholder="user-bob" />
+        </div>
+        <div class="form-row">
+          <label>Recipient Device ID (UUID)</label>
+          <input id="recipientDeviceId" placeholder="00000000-…" />
+        </div>
+        <button class="btn" onclick="startConversation()">Start Conversation</button>
+      </div>
+      <!-- Conversation list -->
+      <div style="padding:10px 16px 4px; flex-shrink:0;">
+        <div class="section-title">Conversations</div>
+      </div>
+      <div class="conv-list" id="convList">
+        <div style="padding:10px;font-size:12px;color:var(--text-dim);text-align:center;">No conversations yet</div>
+      </div>
+      <div style="padding:10px 16px;border-top:1px solid var(--border);flex-shrink:0;">
+        <button class="btn ghost" style="font-size:11px;" onclick="pollMessages()">↻ Poll Messages</button>
+      </div>
+    </aside>
+
+    <main class="chat" id="chatPane">
+      <div class="empty-state">
+        <div class="icon">💬</div>
+        <div>Select or start a conversation</div>
+        <div style="font-size:12px;text-align:center;">Messages use dummy bytes as ciphertext<br>(E2E crypto omitted in dev client)</div>
+      </div>
+    </main>
+
+    <aside class="devpanel">
+      <div class="devpanel-header">Request Log</div>
+      <div class="log" id="logPane"></div>
+      <div class="log-actions">
+        <button class="btn ghost" style="font-size:11px;width:100%;" onclick="clearLog()">Clear</button>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ TAB: USERS ═══════════════════════════ -->
+<div class="tab-panel" id="tab-users">
+  <div class="layout">
+    <aside class="sidebar">
+      <!-- Get a token from mock OIDC -->
+      <div class="section">
+        <div class="section-title">Get Token (Mock OIDC)</div>
+        <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px;line-height:1.5;">
+          Issues a JWT from the mock OIDC server. Use the token to register users.
+          Tenant issuer must be <code style="font-size:11px;color:#a5aff9;">http://oidc/default</code>
+        </p>
+        <div class="form-row">
+          <label>User ID (becomes JWT sub)</label>
+          <input id="tokenUserId" placeholder="alice" />
+        </div>
+        <button class="btn" onclick="fetchToken()">Issue Token</button>
+        <div id="tokenResult" style="margin-top:10px;display:none;">
+          <label style="font-size:11px;color:var(--text-dim);">Token (click to copy)</label>
+          <textarea id="tokenValue" rows="3" readonly onclick="copyTokenValue()"
+            style="font-size:10px;font-family:monospace;cursor:pointer;margin-top:4px;"></textarea>
+        </div>
+      </div>
+      <!-- Register a new user (device) -->
+      <div class="section">
+        <div class="section-title">Register New User</div>
+        <p style="font-size:12px;color:var(--text-dim);margin-bottom:12px;line-height:1.5;">
+          Users are implicitly created when their first device is registered.
+          Paste a valid JWT for that user.
+        </p>
+        <div class="form-row">
+          <label>User ID (JWT sub claim)</label>
+          <input id="newUserId" placeholder="user-charlie" />
+        </div>
+        <div class="form-row">
+          <label>Bearer Token for this user</label>
+          <input id="newUserToken" placeholder="eyJ…" />
+        </div>
+        <div class="form-row">
+          <label>Number of OTPKs (1–100)</label>
+          <input id="newUserOtpks" type="number" value="10" min="1" max="100" />
+        </div>
+        <button class="btn" onclick="registerNewUser()">Register &amp; Create User</button>
+      </div>
+      <!-- Key replenishment -->
+      <div class="section">
+        <div class="section-title">Replenish Keys</div>
+        <div class="form-row">
+          <label>User ID</label>
+          <input id="replenishUserId" placeholder="user-alice" />
+        </div>
+        <div class="form-row">
+          <label>Device ID (UUID)</label>
+          <input id="replenishDeviceId" placeholder="00000000-…" />
+        </div>
+        <div class="form-row">
+          <label>Bearer Token</label>
+          <input id="replenishToken" placeholder="eyJ…" />
+        </div>
+        <div class="form-row">
+          <label>Keys to add (1–100)</label>
+          <input id="replenishCount" type="number" value="20" min="1" max="100" />
+        </div>
+        <button class="btn ghost" onclick="replenishKeys()">Replenish OTPKs</button>
+      </div>
+    </aside>
+
+    <!-- Registered users panel -->
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0;">
+        <span style="font-size:15px;font-weight:600;">Registered Users</span>
+        <span class="spacer"></span>
+        <button class="btn ghost sm" onclick="renderUserList()">↻ Refresh</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:16px;">
+        <div id="userListPane">
+          <div style="color:var(--text-dim);font-size:13px;">
+            Register a user using the form on the left. Registered users are stored locally in this browser session.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="devpanel">
+      <div class="devpanel-header">Request Log</div>
+      <div class="log" id="logPane2"></div>
+      <div class="log-actions">
+        <button class="btn ghost" style="font-size:11px;width:100%;" onclick="clearLog2()">Clear</button>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ TAB: ADMIN ═══════════════════════════ -->
+<div class="tab-panel" id="tab-admin">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="section">
+        <div class="section-title">Admin Credentials</div>
+        <div class="form-row">
+          <label>Admin Token (ADMIN_TOKEN env var)</label>
+          <input id="adminToken" placeholder="change-me-admin-token" type="password" />
+        </div>
+        <button class="btn ghost sm" style="width:100%;" onclick="saveAdminToken()">Save</button>
+      </div>
+      <!-- Create tenant -->
+      <div class="section">
+        <div class="section-title">Create Tenant</div>
+        <div class="form-row">
+          <label>Tenant Name</label>
+          <input id="tenantName" placeholder="Acme Corp" />
+        </div>
+        <div class="form-row">
+          <label>OIDC Issuer URL</label>
+          <input id="tenantIssuer" placeholder="https://auth.acme.com" />
+        </div>
+        <button class="btn" onclick="createTenant()">Create Tenant</button>
+      </div>
+      <!-- Update OIDC issuer -->
+      <div class="section">
+        <div class="section-title">Update OIDC Issuer</div>
+        <div class="form-row">
+          <label>Tenant ID (UUID)</label>
+          <input id="updateTenantId" placeholder="00000000-…" />
+        </div>
+        <div class="form-row">
+          <label>New OIDC Issuer URL</label>
+          <input id="updateIssuer" placeholder="https://new-auth.acme.com" />
+        </div>
+        <button class="btn ghost" onclick="updateIssuer()">Update Issuer</button>
+      </div>
+      <!-- Deactivate tenant -->
+      <div class="section">
+        <div class="section-title">Deactivate Tenant</div>
+        <div class="form-row">
+          <label>Tenant ID (UUID)</label>
+          <input id="deactivateTenantId" placeholder="00000000-…" />
+        </div>
+        <button class="btn danger-outline" onclick="deactivateTenant()">Deactivate Tenant</button>
+      </div>
+      <!-- Get usage -->
+      <div class="section">
+        <div class="section-title">Tenant Usage</div>
+        <div class="form-row">
+          <label>Tenant ID (UUID)</label>
+          <input id="usageTenantId" placeholder="00000000-…" />
+        </div>
+        <button class="btn ghost" onclick="getTenantUsage()">Get Usage</button>
+      </div>
+    </aside>
+
+    <!-- Tenants list -->
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0;">
+        <span style="font-size:15px;font-weight:600;">Tenants</span>
+        <span class="spacer"></span>
+        <button class="btn ghost sm" onclick="renderTenantList()">↻ Refresh</button>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:16px;">
+        <div id="tenantListPane">
+          <div style="color:var(--text-dim);font-size:13px;">
+            Create a tenant using the form on the left. Tenants are stored locally in this session.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="devpanel">
+      <div class="devpanel-header">Request Log</div>
+      <div class="log" id="logPane3"></div>
+      <div class="log-actions">
+        <button class="btn ghost" style="font-size:11px;width:100%;" onclick="clearLog3()">Clear</button>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════════════════════════════════════
+const state = {
+  conversations: {},
+  activeConvId: null,
+  lastSeq: {},
+  users: [],       // { userId, deviceId, token }
+  tenants: [],     // { tenant_id, name, oidc_issuer, active }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Tabs
+// ═══════════════════════════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.nav-tab').forEach((t,i) => {
+    const names = ['chat','users','admin'];
+    t.classList.toggle('active', names[i] === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('active', p.id === 'tab-' + name);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const val = id => $(id) ? $(id).value.trim() : '';
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function initials(s) { return (s||'?').slice(0,2).toUpperCase(); }
+function tsNow() {
+  return new Date().toLocaleTimeString('en',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function dummyKey32() { const b=new Uint8Array(32); crypto.getRandomValues(b); return Array.from(b); }
+function dummySig64() { const b=new Uint8Array(64); crypto.getRandomValues(b); return Array.from(b); }
+function encodeMsg(t) { return Array.from(new TextEncoder().encode(t)); }
+function decodeMsg(arr) { try { return new TextDecoder().decode(new Uint8Array(arr)); } catch { return '[unreadable]'; } }
+
+function toast(msg, type='ok') {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className = 'show ' + (type==='ok' ? 'ok-toast' : 'err-toast');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = '', 3000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Logging (3 independent panes)
+// ═══════════════════════════════════════════════════════════════════════════
+function logTo(paneId, level, msg) {
+  const pane = $(paneId);
+  if (!pane) return;
+  const el = document.createElement('div');
+  el.className = `log-entry ${level}`;
+  el.innerHTML = `<span class="ts">${tsNow()}</span>${escHtml(msg)}`;
+  pane.appendChild(el);
+  pane.scrollTop = pane.scrollHeight;
+}
+function log(l,m)  { logTo('logPane',  l, m); }
+function log2(l,m) { logTo('logPane2', l, m); }
+function log3(l,m) { logTo('logPane3', l, m); }
+function clearLog()  { $('logPane').innerHTML  = ''; }
+function clearLog2() { $('logPane2').innerHTML = ''; }
+function clearLog3() { $('logPane3').innerHTML = ''; }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// API fetch (with selectable log pane)
+// ═══════════════════════════════════════════════════════════════════════════
+async function apiFetch(method, path, body, token, logFn = log) {
+  // Always use relative URLs — all API traffic routes through the nginx proxy.
+  // The baseUrl field is ignored; it exists only for documentation purposes.
+  const url = path;
+  const hdrs = { 'Content-Type': 'application/json' };
+  if (token) hdrs['Authorization'] = `Bearer ${token}`;
+  logFn('info', `${method} ${path}`);
+  try {
+    const res = await fetch(url, { method, headers: hdrs, body: body ? JSON.stringify(body) : undefined });
+    const text = await res.text();
+    let data; try { data = JSON.parse(text); } catch { data = text; }
+    logFn(res.ok ? 'ok' : 'err',
+      `${res.status} ← ${(typeof data==='string'?data:JSON.stringify(data)).slice(0,300)}`);
+    return { ok: res.ok, status: res.status, data };
+  } catch(e) {
+    logFn('err', `Network error: ${e.message}`);
+    return { ok: false, status: 0, data: null };
+  }
+}
+
+async function adminFetch(method, path, body, logFn = log3) {
+  const adminBase = (val('adminUrl') || '').replace(/\/$/,'');
+  const token = val('adminToken') || localStorage.getItem('adminToken') || '';
+  const hdrs = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+  logFn('info', `[admin] ${method} ${path}`);
+  try {
+    const res = await fetch(adminBase + path, { method, headers: hdrs, body: body ? JSON.stringify(body) : undefined });
+    const text = await res.text();
+    let data; try { data = JSON.parse(text); } catch { data = text; }
+    logFn(res.ok ? 'ok' : 'err',
+      `${res.status} ← ${(typeof data==='string'?data:JSON.stringify(data)).slice(0,300)}`);
+    return { ok: res.ok, status: res.status, data };
+  } catch(e) {
+    logFn('err', `Network error: ${e.message}`);
+    return { ok: false, status: 0, data: null };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Health
+// ═══════════════════════════════════════════════════════════════════════════
+async function checkHealth() {
+  const adminBase = (val('adminUrl') || '').replace(/\/$/,'');
+  try {
+    const res = await fetch(adminBase + '/health');
+    const data = await res.json();
+    const ok = res.ok && data.kds_storage === 'ok' && data.message_queue === 'ok';
+    $('status-dot').className = ok ? 'ok' : 'err';
+    $('status-label').textContent = ok ? 'connected' : 'degraded';
+    log(ok ? 'ok' : 'warn', `Health: ${JSON.stringify(data)}`);
+  } catch(e) {
+    $('status-dot').className = 'err';
+    $('status-label').textContent = 'unreachable';
+    log('warn', `Health: ${e.message}`);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WebSocket real-time connection
+// ═══════════════════════════════════════════════════════════════════════════
+let wsConn = null;
+
+function connectWs() {
+  const token = chatToken();
+  if (!token) { toast('Set your bearer token first.', 'err'); return; }
+  if (wsConn && wsConn.readyState === WebSocket.OPEN) {
+    toast('Already connected'); return;
+  }
+
+  const wsUrl = `ws://${location.host}/ws?token=${encodeURIComponent(token)}`;
+  log('info', `Connecting WebSocket: ${wsUrl}`);
+  wsConn = new WebSocket(wsUrl);
+
+  wsConn.onopen = () => {
+    log('ok', 'WebSocket connected');
+    $('status-dot').className = 'ok';
+    $('status-label').textContent = 'WS connected';
+  };
+
+  wsConn.onclose = (e) => {
+    log('warn', `WebSocket closed (${e.code})`);
+    $('status-dot').className = 'err';
+    $('status-label').textContent = 'WS disconnected';
+    wsConn = null;
+    // Auto-reconnect after 3s
+    setTimeout(() => { if (chatToken()) connectWs(); }, 3000);
+  };
+
+  wsConn.onerror = (e) => {
+    log('err', 'WebSocket error');
+  };
+
+  wsConn.onmessage = (e) => {
+    try {
+      const event = JSON.parse(e.data);
+      if (event.type === 'ping') {
+        wsConn.send(JSON.stringify({ type: 'pong' }));
+        return;
+      }
+      handleRtEvent(event);
+    } catch {}
+  };
+}
+
+function handleRtEvent(event) {
+  const userId = chatUserId();
+  log('info', `RT event: ${event.event || event.type}`);
+
+  if (event.event === 'Message') {
+    const m = event;  // MessageEnvelope wrapped in RtEvent::Message
+    const convId = typeof m.conversation_id === 'string'
+      ? m.conversation_id : (m.conversation_id?.['0'] || null);
+    if (!convId) return;
+
+    if (!state.conversations[convId]) {
+      state.conversations[convId] = { id: convId, recipientUserId: '?', messages: [] };
+    }
+    const conv = state.conversations[convId];
+    const existing = new Set(conv.messages.map(x => x.seq));
+    if (!existing.has(m.seq)) {
+      const senderStr = typeof m.sender_user_id === 'string'
+        ? m.sender_user_id : (m.sender_user_id?.['0'] || '');
+      conv.messages.push({ ...m, _text: decodeMsg(m.ciphertext), _mine: senderStr === userId });
+      conv.messages.sort((a,b) => (a.seq||0) - (b.seq||0));
+      renderConvList();
+      if (state.activeConvId === convId) renderChat();
+    }
+  }
+}
+
+
+function chatToken() { return val('token'); }
+function chatUserId() { return val('myUserId'); }
+function chatDeviceId() { return val('myDeviceId'); }
+
+async function registerDevice() {
+  const userId = chatUserId();
+  if (!userId) { toast('Set My User ID first.', 'err'); return; }
+  const bundle = await buildBundle();
+  const res = await apiFetch('POST', `/users/${encodeURIComponent(userId)}/devices`, bundle, chatToken(), log);
+  if (res.ok && res.data?.device_id) {
+    $('myDeviceId').value = res.data.device_id;
+    saveCfg();
+    toast(`Device registered: ${res.data.device_id}`);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Crypto helpers — real Ed25519 key generation + signing via Web Crypto API
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Generate a proper key bundle with a real Ed25519 identity keypair and a
+// valid signature over the signed pre-key bytes.
+// The server verifies: Ed25519-verify(identity_key, signed_prekey, signed_prekey_sig)
+async function buildBundle(otpkCount = 10) {
+  // Generate an Ed25519 identity keypair
+  const identityKeyPair = await crypto.subtle.generateKey(
+    { name: 'Ed25519' },
+    true,
+    ['sign', 'verify']
+  );
+
+  // Export the raw 32-byte public key
+  const identityKeyRaw = await crypto.subtle.exportKey('raw', identityKeyPair.publicKey);
+  const identityKeyBytes = Array.from(new Uint8Array(identityKeyRaw));
+
+  // Generate a random 32-byte signed pre-key (Curve25519 public key placeholder)
+  const signedPrekeyBytes = dummyKey32();
+
+  // Sign the signed pre-key bytes with the Ed25519 identity private key
+  const sigRaw = await crypto.subtle.sign(
+    { name: 'Ed25519' },
+    identityKeyPair.privateKey,
+    new Uint8Array(signedPrekeyBytes)
+  );
+  const signedPrekeySig = Array.from(new Uint8Array(sigRaw)); // 64 bytes
+
+  return {
+    identity_key:      identityKeyBytes,
+    signed_prekey_id:  1,
+    signed_prekey:     signedPrekeyBytes,
+    signed_prekey_sig: signedPrekeySig,
+    one_time_prekeys:  Array.from({ length: otpkCount }, (_, i) => ({
+      key_id:     i + 1,
+      public_key: dummyKey32(),
+    })),
+  };
+}
+
+async function startConversation() {
+  const userId = chatUserId(), deviceId = chatDeviceId();
+  const recUserId = val('recipientUserId'), recDeviceId = val('recipientDeviceId');
+  if (!userId || !deviceId) { toast('Register your device first.', 'err'); return; }
+  if (!recUserId || !recDeviceId) { toast('Fill in recipient info.', 'err'); return; }
+
+  const envelope = {
+    conversation_id: '00000000-0000-0000-0000-000000000000',
+    sender_user_id: userId, sender_device_id: deviceId,
+    recipient_user_id: recUserId, recipient_device_id: recDeviceId,
+    ciphertext: encodeMsg('__x3dh_init__'),
+    protocol_header: {
+      type: 'X3dhInit', sender_identity_key: dummyKey32(), ephemeral_key: dummyKey32(),
+      used_signed_prekey_id: 1, used_otpk_id: 1,
+      dr_header: { ratchet_key: dummyKey32(), prev_chain_n: 0, msg_n: 0 },
+    },
+  };
+  const res = await apiFetch('POST', '/conversations',
+    { recipient_user_id: recUserId, recipient_device_id: recDeviceId, envelope },
+    chatToken(), log);
+  if (res.ok && res.data?.conversation_id) {
+    const convId = res.data.conversation_id;
+    if (!state.conversations[convId])
+      state.conversations[convId] = { id: convId, recipientUserId: recUserId, messages: [] };
+    renderConvList();
+    selectConv(convId);
+    toast(`Conversation ready`);
+  }
+}
+
+function selectConv(convId) {
+  state.activeConvId = convId;
+  renderConvList();
+  renderChat();
+  pollMessages();
+}
+
+async function sendMessage() {
+  const userId = chatUserId(), deviceId = chatDeviceId();
+  const convId = state.activeConvId;
+  const input = $('msgInput');
+  const text = input?.value.trim();
+  if (!text || !convId) return;
+  const conv = state.conversations[convId];
+  if (!conv) return;
+  input.value = '';
+
+  const envelope = {
+    conversation_id: convId, sender_user_id: userId, sender_device_id: deviceId,
+    recipient_user_id: conv.recipientUserId, recipient_device_id: null,
+    ciphertext: encodeMsg(text),
+    protocol_header: {
+      type: 'DoubleRatchet', ratchet_key: dummyKey32(), prev_chain_n: 0, msg_n: conv.messages.length,
+    },
+    attachment_id: null,
+  };
+  const res = await apiFetch('POST', `/conversations/${convId}/messages`, { envelope }, chatToken(), log);
+  if (res.ok) {
+    conv.messages.push({ sender_user_id: userId, seq: res.data?.seq, server_ts: res.data?.server_ts, _text: text, _mine: true, attachment_id: null });
+    renderChat();
+    pollMessages();
+  }
+}
+
+async function sendFile(input) {
+  const files = input.files;
+  if (!files || files.length === 0) return;
+  const userId = chatUserId(), deviceId = chatDeviceId();
+  const convId = state.activeConvId;
+  if (!convId) { toast('Select a conversation first.', 'err'); return; }
+  const conv = state.conversations[convId];
+  if (!conv) return;
+
+  for (const file of files) {
+    log('info', `Uploading ${file.name} (${(file.size/1024).toFixed(1)} KB)…`);
+    toast(`Uploading ${file.name}…`);
+
+    const form = new FormData();
+    form.append('file', file, file.name);
+
+    let uploadRes;
+    try {
+      const res = await fetch('/attachments', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${chatToken()}` },
+        body: form,
+      });
+      uploadRes = await res.json();
+      if (!res.ok) {
+        log('err', `Upload failed: ${JSON.stringify(uploadRes)}`);
+        toast(`Upload failed: ${uploadRes.message || res.status}`, 'err');
+        continue;
+      }
+      log('ok', `Uploaded ${file.name} → ${uploadRes.attachment_id}`);
+    } catch(e) {
+      log('err', `Upload error: ${e.message}`);
+      toast('Upload failed — network error', 'err');
+      continue;
+    }
+
+    // Send a message referencing the attachment
+    const displayText = `📎 ${file.name}`;
+    const envelope = {
+      conversation_id: convId, sender_user_id: userId, sender_device_id: deviceId,
+      recipient_user_id: conv.recipientUserId, recipient_device_id: null,
+      ciphertext: encodeMsg(displayText),
+      protocol_header: {
+        type: 'DoubleRatchet', ratchet_key: dummyKey32(), prev_chain_n: 0, msg_n: conv.messages.length,
+      },
+      attachment_id: uploadRes.attachment_id,
+    };
+    const msgRes = await apiFetch('POST', `/conversations/${convId}/messages`, { envelope }, chatToken(), log);
+    if (msgRes.ok) {
+      conv.messages.push({
+        sender_user_id: userId,
+        seq: msgRes.data?.seq,
+        server_ts: msgRes.data?.server_ts,
+        _text: displayText,
+        _mine: true,
+        attachment_id: uploadRes.attachment_id,
+        attachment_name: file.name,
+        attachment_type: file.type,
+        attachment_size: file.size,
+      });
+      renderChat();
+      toast(`Sent: ${file.name}`);
+    }
+  }
+  // Clear the file input so the same file can be re-selected
+  input.value = '';
+}
+
+async function pollMessages() {
+  const userId = chatUserId(), convId = state.activeConvId;
+  if (!convId) return;
+  const res = await apiFetch('GET', `/conversations/${convId}/messages?limit=50`, null, chatToken(), log);
+  if (!res.ok || !res.data?.messages) return;
+  const conv = state.conversations[convId];
+  if (!conv) return;
+  const existing = new Set(conv.messages.map(m => m.seq));
+  let added = 0;
+  for (const m of res.data.messages) {
+    if (!existing.has(m.seq)) {
+      const senderStr = typeof m.sender_user_id === 'string' ? m.sender_user_id : (m.sender_user_id?.['0'] || '');
+      conv.messages.push({
+        ...m,
+        _text: m.attachment_id ? `📎 attachment` : decodeMsg(m.ciphertext),
+        _mine: senderStr === userId,
+        attachment_id: m.attachment_id || null,
+        attachment_name: null,
+        attachment_type: null,
+        attachment_size: null,
+      });
+      added++;
+    }
+  }
+  if (added > 0) { conv.messages.sort((a,b)=>(a.seq||0)-(b.seq||0)); renderChat(); }
+}
+
+function renderConvList() {
+  const list = $('convList');
+  const convs = Object.values(state.conversations);
+  if (!convs.length) {
+    list.innerHTML = '<div style="padding:10px;font-size:12px;color:var(--text-dim);text-align:center;">No conversations</div>';
+    return;
+  }
+  list.innerHTML = convs.map(c => {
+    const active = c.id === state.activeConvId ? 'active' : '';
+    const last = c.messages.at(-1)?._text || c.id.slice(0,8)+'…';
+    return `<div class="conv-item ${active}" onclick="selectConv('${c.id}')">
+      <div class="conv-avatar">${escHtml(initials(c.recipientUserId))}</div>
+      <div class="conv-info">
+        <div class="conv-name">${escHtml(c.recipientUserId)}</div>
+        <div class="conv-last">${escHtml(last.slice(0,40))}</div>
+      </div></div>`;
+  }).join('');
+}
+
+function renderChat() {
+  const pane = $('chatPane'), userId = chatUserId();
+  const conv = state.conversations[state.activeConvId];
+  if (!conv) {
+    pane.innerHTML = `<div class="empty-state"><div class="icon">💬</div>
+      <div>Select or start a conversation</div>
+      <div style="font-size:12px;text-align:center;">Messages use dummy ciphertext<br>(E2E crypto omitted in dev client)</div></div>`;
+    return;
+  }
+  const msgs = conv.messages.map(m => {
+    const mine = m._mine;
+    const sender = typeof m.sender_user_id === 'string' ? m.sender_user_id : (m.sender_user_id?.['0'] || '?');
+    const time = m.server_ts ? new Date(Number(m.server_ts)).toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'}) : '';
+
+    // Build attachment preview if present
+    let attachmentHtml = '';
+    const aid = m.attachment_id;
+    if (aid) {
+      const name = m.attachment_name || escHtml(m._text?.replace('📎 ','') || 'attachment');
+      const mime = m.attachment_type || '';
+      const url = `/attachments/${aid}`;
+      if (mime.startsWith('image/')) {
+        attachmentHtml = `
+          <a href="${url}" target="_blank" download>
+            <img src="${url}" alt="${name}"
+              style="max-width:220px;max-height:180px;border-radius:8px;display:block;margin-top:6px;cursor:pointer;"
+              onerror="this.style.display='none'" />
+          </a>`;
+      } else if (mime.startsWith('video/')) {
+        attachmentHtml = `
+          <video controls style="max-width:260px;border-radius:8px;margin-top:6px;display:block;">
+            <source src="${url}" type="${mime}" />
+          </video>`;
+      } else if (mime.startsWith('audio/')) {
+        attachmentHtml = `
+          <audio controls style="margin-top:6px;display:block;max-width:260px;">
+            <source src="${url}" type="${mime}" />
+          </audio>`;
+      } else {
+        const sizeKb = m.attachment_size ? ` · ${(m.attachment_size/1024).toFixed(1)} KB` : '';
+        attachmentHtml = `
+          <a href="${url}" download="${name}" target="_blank"
+            style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;
+                   padding:7px 12px;border-radius:8px;font-size:12px;font-weight:500;
+                   background:rgba(255,255,255,.15);color:inherit;text-decoration:none;">
+            📎 ${escHtml(name)}${escHtml(sizeKb)}
+          </a>`;
+      }
+    }
+
+    // Only show text label if it's not just the auto-generated "📎 filename"
+    const showText = !aid || (m._text && !m._text.startsWith('📎 '));
+
+    return `<div class="msg ${mine?'mine':'theirs'}">
+      <div class="msg-meta">${mine?'You':escHtml(sender)}${time?' · '+time:''}</div>
+      <div class="msg-bubble">
+        ${showText ? escHtml(m._text||'[empty]') : ''}
+        ${attachmentHtml}
+      </div>
+      ${m.seq!=null?`<div class="msg-seq">seq ${m.seq}</div>`:''}
+    </div>`;
+  }).join('');
+  pane.innerHTML = `
+    <div class="chat-header">
+      <div class="conv-avatar" style="width:32px;height:32px;font-size:12px;">${escHtml(initials(conv.recipientUserId))}</div>
+      <div><div class="big-name">${escHtml(conv.recipientUserId)}</div><div class="sub-id">${conv.id}</div></div>
+    </div>
+    <div class="messages" id="msgList">
+      ${msgs || '<div style="margin:auto;color:var(--text-dim);font-size:13px;">No messages yet</div>'}
+    </div>
+    <div class="compose">
+      <input id="msgInput" placeholder="Type a message…" onkeydown="if(event.key==='Enter')sendMessage()" />
+      <label class="btn ghost" style="width:auto;padding:10px 12px;cursor:pointer;" title="Attach file">
+        📎
+        <input type="file" id="fileInput" style="display:none" onchange="sendFile(this)" multiple />
+      </label>
+      <button class="btn" onclick="sendMessage()">Send</button>
+    </div>`;
+  const ml = $('msgList');
+  if (ml) ml.scrollTop = ml.scrollHeight;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── USERS TAB ──
+// ═══════════════════════════════════════════════════════════════════════════
+async function fetchToken() {
+  const userId = val('tokenUserId');
+  if (!userId) { toast('Enter a user ID.', 'err'); return; }
+  log2('info', `Issuing token for ${userId}…`);
+  try {
+    const res = await fetch('/oidc/default/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `grant_type=client_credentials&client_id=${encodeURIComponent(userId)}&client_secret=any`,
+    });
+    const data = await res.json();
+    if (data.access_token) {
+      $('tokenValue').value = data.access_token;
+      $('tokenResult').style.display = 'block';
+      $('newUserId').value  = userId;
+      $('newUserToken').value = data.access_token;
+      log2('ok', `Token issued for ${userId} (iss=http://oidc/default)`);
+      toast(`Token issued for ${userId}`);
+    } else {
+      log2('err', JSON.stringify(data));
+      toast('Failed to issue token', 'err');
+    }
+  } catch(e) {
+    log2('err', `Token fetch error: ${e.message}`);
+    toast('OIDC unreachable — is the oidc container running?', 'err');
+  }
+}
+
+function copyTokenValue() {
+  const v = $('tokenValue').value;
+  if (v) navigator.clipboard.writeText(v).then(() => toast('Token copied!'));
+}
+
+async function registerNewUser() {
+  const userId = val('newUserId');
+  const token  = val('newUserToken');
+  const otpkCount = parseInt(val('newUserOtpks')) || 10;
+
+  if (!userId) { toast('Enter a User ID.', 'err'); return; }
+  if (!token)  { toast('Enter a Bearer Token for this user.', 'err'); return; }
+
+  const bundle = await buildBundle(Math.min(100, Math.max(1, otpkCount)));
+  const res = await apiFetch('POST', `/users/${encodeURIComponent(userId)}/devices`, bundle, token, log2);
+
+  if (res.ok && res.data?.device_id) {
+    const deviceId = res.data.device_id;
+    // Store locally
+    const existing = state.users.findIndex(u => u.userId === userId);
+    const entry = { userId, deviceId, token };
+    if (existing >= 0) state.users[existing] = entry;
+    else state.users.push(entry);
+    saveState();
+    renderUserList();
+    toast(`User "${userId}" registered — device ${deviceId.slice(0,8)}…`);
+    // Clear form
+    $('newUserId').value = '';
+    $('newUserToken').value = '';
+    $('newUserOtpks').value = '10';
+  }
+}
+
+async function replenishKeys() {
+  const userId   = val('replenishUserId');
+  const deviceId = val('replenishDeviceId');
+  const token    = val('replenishToken');
+  const count    = parseInt(val('replenishCount')) || 20;
+
+  if (!userId || !deviceId || !token) { toast('Fill in all replenishment fields.', 'err'); return; }
+
+  const keys = Array.from({length: Math.min(100, count)}, (_,i) => ({
+    key_id: Date.now() + i, public_key: dummyKey32()
+  }));
+  const res = await apiFetch('PUT',
+    `/users/${encodeURIComponent(userId)}/devices/${encodeURIComponent(deviceId)}/one-time-prekeys`,
+    { one_time_prekeys: keys }, token, log2);
+  if (res.ok) toast(`Replenished ${count} OTPKs. Total: ${res.data?.total_count}`);
+}
+
+function useUser(userId, deviceId, token) {
+  // Switch to Chat tab and fill in identity
+  switchTab('chat');
+  $('myUserId').value  = userId;
+  $('myDeviceId').value = deviceId;
+  $('token').value = token;
+  saveCfg();
+  toast(`Switched to ${userId}`);
+}
+
+function removeUser(userId) {
+  state.users = state.users.filter(u => u.userId !== userId);
+  saveState();
+  renderUserList();
+}
+
+function renderUserList() {
+  const pane = $('userListPane');
+  if (!state.users.length) {
+    pane.innerHTML = '<div style="color:var(--text-dim);font-size:13px;">No users registered yet. Use the form on the left.</div>';
+    return;
+  }
+  pane.innerHTML = state.users.map(u => `
+    <div class="user-card" style="margin-bottom:8px;">
+      <div class="user-card-header">
+        <div class="user-avatar">${escHtml(initials(u.userId))}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="user-name">${escHtml(u.userId)}</div>
+          <div class="user-device">Device: ${escHtml(u.deviceId)}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <button class="btn sm" onclick="useUser('${escHtml(u.userId)}','${escHtml(u.deviceId)}','${escHtml(u.token)}')">
+          Use in Chat
+        </button>
+        <button class="btn ghost sm" onclick="copyText('${escHtml(u.deviceId)}')">Copy Device ID</button>
+        <button class="btn danger-outline sm" onclick="removeUser('${escHtml(u.userId)}')">Remove</button>
+      </div>
+    </div>`).join('');
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => toast('Copied!'));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ── ADMIN TAB ──
+// ═══════════════════════════════════════════════════════════════════════════
+function saveAdminToken() {
+  localStorage.setItem('adminToken', val('adminToken'));
+  toast('Admin token saved.');
+}
+
+async function createTenant() {
+  const name = val('tenantName'), oidc_issuer = val('tenantIssuer');
+  if (!name || !oidc_issuer) { toast('Fill in name and OIDC issuer.', 'err'); return; }
+  const res = await adminFetch('POST', '/admin/tenants', { name, oidc_issuer });
+  if (res.ok && res.data?.tenant_id) {
+    state.tenants.push({ tenant_id: res.data.tenant_id, name, oidc_issuer, active: true });
+    saveState();
+    renderTenantList();
+    $('tenantName').value = '';
+    $('tenantIssuer').value = '';
+    toast(`Tenant "${name}" created`);
+  }
+}
+
+async function updateIssuer() {
+  const tenantId = val('updateTenantId'), oidc_issuer = val('updateIssuer');
+  if (!tenantId || !oidc_issuer) { toast('Fill in tenant ID and new issuer.', 'err'); return; }
+  const res = await adminFetch('PUT', `/admin/tenants/${encodeURIComponent(tenantId)}/oidc`, { oidc_issuer });
+  if (res.ok) {
+    const t = state.tenants.find(t => t.tenant_id === tenantId);
+    if (t) t.oidc_issuer = oidc_issuer;
+    saveState(); renderTenantList();
+    toast('OIDC issuer updated');
+  }
+}
+
+async function deactivateTenant() {
+  const tenantId = val('deactivateTenantId');
+  if (!tenantId) { toast('Enter a tenant ID.', 'err'); return; }
+  if (!confirm(`Deactivate tenant ${tenantId}?`)) return;
+  const res = await adminFetch('DELETE', `/admin/tenants/${encodeURIComponent(tenantId)}`);
+  if (res.ok) {
+    const t = state.tenants.find(t => t.tenant_id === tenantId);
+    if (t) t.active = false;
+    saveState(); renderTenantList();
+    toast('Tenant deactivated');
+  }
+}
+
+async function getTenantUsage() {
+  const tenantId = val('usageTenantId');
+  if (!tenantId) { toast('Enter a tenant ID.', 'err'); return; }
+  const res = await adminFetch('GET', `/admin/tenants/${encodeURIComponent(tenantId)}/usage`);
+  if (res.ok && res.data) {
+    const d = res.data;
+    toast(`Users: ${d.user_count} · Devices: ${d.device_count} · Msgs(30d): ${d.message_count_30d}`);
+  }
+}
+
+function fillTenantId(id) {
+  $('updateTenantId').value = id;
+  $('deactivateTenantId').value = id;
+  $('usageTenantId').value = id;
+  toast('Tenant ID filled into forms');
+}
+
+function renderTenantList() {
+  const pane = $('tenantListPane');
+  if (!state.tenants.length) {
+    pane.innerHTML = '<div style="color:var(--text-dim);font-size:13px;">No tenants yet. Create one using the form on the left.</div>';
+    return;
+  }
+  pane.innerHTML = state.tenants.map(t => `
+    <div class="tenant-card">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <div class="tenant-name">${escHtml(t.name)}</div>
+        <span class="badge ${t.active?'active':'inactive'}">${t.active?'active':'inactive'}</span>
+      </div>
+      <div class="tenant-meta">ID: ${escHtml(t.tenant_id)}</div>
+      <div class="tenant-meta" style="margin-top:2px;">Issuer: ${escHtml(t.oidc_issuer)}</div>
+      <div style="display:flex;gap:6px;margin-top:8px;">
+        <button class="btn ghost sm" onclick="copyText('${escHtml(t.tenant_id)}')">Copy ID</button>
+        <button class="btn ghost sm" onclick="fillTenantId('${escHtml(t.tenant_id)}')">Select</button>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Persistence
+// ═══════════════════════════════════════════════════════════════════════════
+function saveCfg() {
+  localStorage.setItem('rustchat-cfg', JSON.stringify({
+    adminUrl: val('adminUrl'),
+    token: val('token'), userId: val('myUserId'), deviceId: val('myDeviceId'),
+  }));
+}
+
+function saveState() {
+  localStorage.setItem('rustchat-state', JSON.stringify({
+    users: state.users, tenants: state.tenants,
+  }));
+}
+
+function loadState() {
+  const cfg = JSON.parse(localStorage.getItem('rustchat-cfg') || '{}');
+  if (cfg.adminUrl) $('adminUrl').value = cfg.adminUrl;
+  if (cfg.token)    $('token').value    = cfg.token;
+  if (cfg.userId)   $('myUserId').value = cfg.userId;
+  if (cfg.deviceId) $('myDeviceId').value = cfg.deviceId;
+
+  const savedToken = localStorage.getItem('adminToken');
+  if (savedToken) $('adminToken').value = savedToken;
+
+  const s = JSON.parse(localStorage.getItem('rustchat-state') || '{}');
+  if (Array.isArray(s.users))   state.users   = s.users;
+  if (Array.isArray(s.tenants)) state.tenants = s.tenants;
+}
+
+// Auto-save config fields on change
+['adminUrl','token','myUserId','myDeviceId'].forEach(id => {
+  const el = $(id);
+  if (el) el.addEventListener('input', saveCfg);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Init
+// ═══════════════════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  loadState();
+  renderUserList();
+  renderTenantList();
+  renderConvList();
+  renderChat();
+  checkHealth();
+  setInterval(checkHealth, 30_000);
+  setInterval(() => { if (state.activeConvId) pollMessages(); }, 5_000);
+  log('info', 'Dev client ready — set your bearer token and user ID to start.');
+  log2('info', 'Users tab ready.');
+  log3('info', 'Admin tab ready — set ADMIN_TOKEN to manage tenants.');
+});
+</script>
+</html>

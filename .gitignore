@@ -1,0 +1,61 @@
+# ── Rust ──────────────────────────────────────────────────────────────────────
+/target/
+**/*.rs.bk
+*.pdb
+
+# ── Secrets / environment ─────────────────────────────────────────────────────
+.env
+!.env.example
+
+# ── TLS certificates (generated locally, never committed) ─────────────────────
+certs/
+
+# ── Docker volumes (bind-mounts, not checked in) ──────────────────────────────
+# (named volumes live inside Docker and are never in the working tree)
+
+# ── Next.js (web/ frontend, when created) ─────────────────────────────────────
+web/.next/
+web/out/
+web/node_modules/
+web/.npm
+web/.pnp
+web/.pnp.js
+web/.yarn/
+web/coverage/
+web/.env*.local
+
+# ── Node / npm (any JS tooling at root) ──────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm/
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# ── Editor / IDE ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.editorconfig
+
+# ── Kiro / tooling metadata (not source code) ─────────────────────────────────
+.code-grapher/
+.commandcode/
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── OS / misc ─────────────────────────────────────────────────────────────────
+Thumbs.db
+Desktop.ini

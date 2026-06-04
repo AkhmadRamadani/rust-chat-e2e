@@ -1,0 +1,39 @@
+# ── .dockerignore — keep build context small ─────────────────────────────────
+
+# Compiled artefacts (never needed in build context)
+/target
+
+# Git history
+.git
+.gitignore
+
+# Editor / IDE
+.vscode
+.idea
+*.code-workspace
+.DS_Store
+
+# Kiro / tooling metadata
+.kiro
+.commandcode
+.code-grapher
+
+# Docker files themselves (avoid trivial cache busts)
+Dockerfile
+docker-compose.yml
+docker-compose*.yml
+
+# Local secrets / overrides — never bake into image
+.env
+.env.*
+!.env.example
+
+# TLS certificates (mounted at runtime via volume)
+certs/
+
+# Documentation
+*.md
+!README.md
+
+# CI / GitHub Actions
+.github

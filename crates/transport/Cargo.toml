@@ -1,0 +1,8 @@
+[package]
+name = "transport"
+version = "0.1.0"
+edition = "2021"
+
+# This crate is now a placeholder. QUIC/H3/WebTransport has been replaced
+# with axum WebSocket. No dependencies needed.
+[dependencies]
