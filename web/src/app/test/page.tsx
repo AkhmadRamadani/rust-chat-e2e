@@ -31,6 +31,10 @@ export default function TestClientPage() {
           dev client (react)
         </span>
         <div className="flex-1" />
+        <a href="/docs" className="text-[13px] text-[#7b82a8] hover:text-[#e2e4f0] transition-colors flex items-center gap-1.5 mr-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+          Docs
+        </a>
         <div className={`w-2 h-2 rounded-full ${globalStatus.ok ? 'bg-[#3ecf8e]' : 'bg-[#f87171]'}`} />
         <span className="text-[12px] text-[#7b82a8]">{globalStatus.label}</span>
       </header>
