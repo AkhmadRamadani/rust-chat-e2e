@@ -1,0 +1,16 @@
+name: rust_e2e_chat_example
+description: Minimal demo of rust_e2e_chat_sdk — init, 1:1 chat, group chat.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  rust_e2e_chat_sdk:
+    path: ../
+
+flutter:
+  uses-material-design: true

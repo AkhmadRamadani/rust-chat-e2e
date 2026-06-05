@@ -1,0 +1,34 @@
+# Flutter/Dart build output
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+*.iml
+
+# Pub cache & generated files
+.pub-cache/
+.pub/
+pubspec.lock
+
+# Test coverage
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Android & iOS generated
+android/
+ios/
+
+# Example app build
+example/.dart_tool/
+example/build/
+example/android/
+example/ios/

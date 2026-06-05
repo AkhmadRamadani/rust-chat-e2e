@@ -1,0 +1,32 @@
+name: rust_e2e_chat_sdk
+description: A complete Dart/Flutter client SDK for the rust-e2e-chat-api platform. Provides X3DH + Double Ratchet 1:1 encryption, Sender Key group encryption, WebSocket real-time delivery, and a reactive Dart public API.
+version: 0.1.0
+homepage: https://github.com/your-org/rust_e2e_chat_sdk
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.4.0
+  web_socket_channel: ^3.0.0
+  flutter_secure_storage: ^9.2.2
+  cryptography: ^2.7.0
+  uuid: ^4.4.0
+  json_annotation: ^4.9.0
+  collection: ^1.18.0
+  meta: ^1.12.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  build_runner: ^2.4.0
+  json_serializable: ^6.8.0
+  mocktail: ^1.0.3
+  test: ^1.25.0
+  lints: ^3.0.0
+
+flutter:
+  # No assets needed for the SDK itself
